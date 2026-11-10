@@ -46,11 +46,26 @@ Lower priority values take precedence. Weights balance traffic only among backen
 
 - An Azure subscription.
 - [Terraform CLI](https://developer.hashicorp.com/terraform/install), [Azure CLI](https://learn.microsoft.com/cli/azure/install-azure-cli), and Git.
+- [Azure Developer CLI (`azd`)](https://learn.microsoft.com/azure/developer/azure-developer-cli/install-azd) if using the azd deployment option below.
 - A deployment identity allowed to create the resources and their role assignments, including the monitoring Data Collection Rule (DCR) role assignment. Owner, or appropriately scoped Contributor and Role Based Access Control Administrator permissions, may be required.
 - The relevant resource providers registered in the subscription: `Microsoft.ApiManagement`, `Microsoft.CognitiveServices`, `Microsoft.ManagedIdentity`, `Microsoft.OperationalInsights`, and `Microsoft.Insights`.
 
 The provider versions are pinned in [providers.tf](./standalone/providers.tf): `hashicorp/azurerm` `5.12.0`, `Azure/azapi` `2.10.0`, and `hashicorp/random` `3.9.1`.
 
+
+## Deploy with Azure Developer CLI
+
+Following the [AI Gateway infrastructure-as-code quickstart](https://ai.gateway.azure.com/docs/quickstarts/iac), you can provision this infrastructure-only sample with `azd`. Run from the repository root:
+
+```bash
+git clone https://github.com/Azure-Samples/ai-gateway-foundry-terraform.git
+cd ai-gateway-foundry-terraform
+
+az login
+azd auth login
+azd env new dev --location swedencentral --subscription "<subscription-id>"
+azd provision
+```
 
 ## Deploy with Terraform
 
@@ -159,7 +174,13 @@ Operational considerations:
 
 ## Clean up
 
-From `standalone/`, using the same subscription and Terraform state:
+For an azd deployment, run from the repository root with the same azd environment selected:
+
+```bash
+azd down
+```
+
+For a standalone Terraform deployment, run from `standalone/`, using the same subscription and Terraform state:
 
 ```bash
 terraform plan -destroy -out=destroy.tfplan
@@ -174,4 +195,5 @@ Review the destruction plan carefully. A resource group created by this configur
 - [Microsoft Foundry documentation](https://learn.microsoft.com/azure/ai-foundry/)
 - [Azure OpenAI role-based access control](https://learn.microsoft.com/azure/ai-foundry/openai/how-to/role-based-access-control)
 - [Terraform on Azure](https://learn.microsoft.com/azure/developer/terraform/)
+- [Azure Developer CLI Terraform support](https://learn.microsoft.com/azure/developer/azure-developer-cli/use-terraform-for-azd)
 - [AzAPI provider documentation](https://registry.terraform.io/providers/Azure/azapi/latest/docs)
