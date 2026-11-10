@@ -67,16 +67,6 @@ azd env new dev --location swedencentral --subscription "<subscription-id>"
 azd provision
 ```
 
-Alternatively, run `azd up` instead of `azd provision`. There is no application service to build or deploy.
-
-[azure.yaml](./azure.yaml) selects Terraform in `standalone/`. azd passes the selected subscription to the Terraform providers and substitutes the environment values in [main.tfvars.json](./standalone/main.tfvars.json): `AZURE_LOCATION` supplies `location`, and `AZURE_ENV_NAME` supplies the `azd-env-name` resource tag.
-
-Confirm model availability and quota in the selected location before provisioning. To change it, run `azd env set AZURE_LOCATION <location>`. Other inputs can be configured in `standalone/terraform.tfvars` as shown below. The azd parameter template takes precedence for `location` and `tags`; add custom tags to that template if needed. The Terraform `environment` input still defaults to `dev` independently of the azd environment name, and `region` remains the naming abbreviation `swc` unless explicitly changed.
-
-Use `azd provision --preview` to review the Terraform plan before provisioning. The existing local backend is retained: azd stores its parameters, plan, provider data, and state under `.azure/<environment>/standalone/`, which is ignored by Git. Keep this directory safe; it is needed to update or delete the deployment.
-
-**Choose one workflow per deployment.** azd does not use a standalone deployment's `standalone/terraform.tfstate`. Do not switch an existing deployment between azd and direct Terraform commands without explicitly migrating its state. The standalone `terraform init` workflow below is unchanged; Terraform does not automatically load `main.tfvars.json`.
-
 ## Deploy with Terraform
 
 ### 1. Authenticate and select a subscription
