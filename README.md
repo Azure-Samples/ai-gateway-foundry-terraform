@@ -52,6 +52,8 @@ Lower priority values take precedence. Weights balance traffic only among backen
 
 The provider versions are pinned in [providers.tf](./standalone/providers.tf): `hashicorp/azurerm` `5.12.0`, `Azure/azapi` `2.10.0`, and `hashicorp/random` `3.9.1`.
 
+The offline tests in `standalone/tests/` use mock providers, which need Terraform 1.7 or later. Because `terraform init` and `terraform validate` also read that folder, use Terraform 1.7 or later with this repository.
+
 
 ## Deploy with Azure Developer CLI
 
@@ -131,6 +133,7 @@ All current inputs are declared in [variables.tf](./standalone/variables.tf).
 | `region` | Short region label used in resource names. | `"swc"` |
 | `tags` | Custom resource tags, merged with the built-in tags in `locals.tf`. | `{}` |
 | `resource_group_name` | Existing resource group name; empty creates a new group. | `""` |
+| `gateway_allowed_ip_ranges` | Optional client IP allow list for the gateway; see [Optional network and access settings](#optional-network-and-access-settings). | `null` |
 
 Resource names combine the environment, region label, domain, workload, and a random suffix. Built-in tag values take precedence over matching custom tag keys.
 
@@ -171,6 +174,38 @@ Operational considerations:
 - **Monitoring readiness:** If Application Insights has not populated its ingestion endpoints or managed DCR, the configuration fails with an explicit postcondition message. Wait for Azure provisioning to complete, then run `terraform plan` and `terraform apply` again.
 - **Monitoring permissions:** A DCR role-assignment authorization failure requires suitable permissions at that scope. Do not assume resource-group permissions cover a DCR in an Azure-managed resource group.
 - **Model deployment failures:** Verify region availability, model access, and quota for the configured versions and capacities.
+
+## Optional network and access settings
+
+The settings in this section are off by default; when they are unset, the deployment is unchanged. They never create a virtual network, subnet, or DNS zone; settings that need one take the ID of an existing resource.
+
+Set them in `standalone/terraform.tfvars`. Terraform loads that file automatically, also when azd runs Terraform in `standalone/`, and `.gitignore` keeps `*.tfvars` files out of version control.
+
+Offline tests for these settings are in `standalone/tests/`. They mock all providers, so they never call Azure. Run `terraform init` and then `terraform test` from `standalone/`.
+
+### Restrict gateway callers by IP address
+
+`gateway_allowed_ip_ranges` limits which client addresses can call the gateway. Terraform adds an `ipFilter` policy to the gateway's default workspace and keeps the workspace's other policies.
+
+| Value | Effect |
+| --- | --- |
+| `null` (default) | Terraform does not read or change the workspace policies. |
+| `[]` | Removes the IP filter and keeps the other policies. |
+| List of CIDR ranges | Allows only callers from these ranges. Duplicates are removed and the list is sorted. |
+
+Each entry must be a valid IPv4 or IPv6 CIDR range. A prefix length of `0`, which would allow every address, is rejected, as are leading zeros in IPv4 parts or prefix lengths.
+
+Before enabling it, consider:
+
+- **Lockout risk:** Callers outside the list are blocked. This includes Foundry agents and other Azure services that call the gateway, and VPN users whose traffic leaves through a different public address (split tunneling).
+- **Removal:** Apply `[]` first, then set the value back to `null`. Going straight to `null` leaves the last filter in place, because removing the setting sends no request.
+- **Changes outside Terraform:** Terraform writes the filter but does not detect later changes made in the portal or through the API. To write it again, run:
+
+  ```bash
+  terraform apply -replace='azapi_resource_action.gateway_ip_filter["default"]'
+  ```
+
+- **Check after enabling:** Send one request from an address in the list and one from outside it. Only the first should succeed.
 
 ## Clean up
 

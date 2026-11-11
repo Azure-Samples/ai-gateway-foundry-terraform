@@ -43,3 +43,22 @@ variable "resource_group_name" {
   description = "The name of the resource group"
   default     = ""
 }
+
+variable "gateway_allowed_ip_ranges" {
+  type        = list(string)
+  description = "Optional gateway-wide allow list of caller IP ranges in CIDR notation, for all models and MCP tool servers. null (default) leaves the gateway policies unmanaged; [] removes the allow list that Terraform wrote earlier."
+  default     = null
+  validation {
+    condition = var.gateway_allowed_ip_ranges == null ? true : alltrue([
+      for entry in var.gateway_allowed_ip_ranges :
+      can(cidrhost(entry, 0)) && try(tonumber(split("/", entry)[1]) > 0, false)
+    ])
+    error_message = "Each gateway_allowed_ip_ranges entry must be an IPv4 or IPv6 range in CIDR notation with a prefix length above zero. For a single address, use prefix length 32 (IPv4) or 128 (IPv6)."
+  }
+  validation {
+    condition = var.gateway_allowed_ip_ranges == null ? true : alltrue([
+      for entry in var.gateway_allowed_ip_ranges : !can(regex("(^|[.:])0[0-9]+[.]|[.]0[0-9]+/|/0[0-9]", entry))
+    ])
+    error_message = "gateway_allowed_ip_ranges entries must not use leading zeros in IPv4 parts or in the prefix length, because other tools may read them differently."
+  }
+}
