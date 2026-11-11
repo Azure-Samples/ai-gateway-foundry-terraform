@@ -52,6 +52,8 @@ Lower priority values take precedence. Weights balance traffic only among backen
 
 The provider versions are pinned in [providers.tf](./standalone/providers.tf): `hashicorp/azurerm` `5.12.0`, `Azure/azapi` `2.10.0`, and `hashicorp/random` `3.9.1`.
 
+The offline tests in `standalone/tests/` use mock providers, which need Terraform 1.7 or later. Because `terraform init` and `terraform validate` also read that folder, use Terraform 1.7 or later with this repository.
+
 
 ## Deploy with Azure Developer CLI
 
@@ -131,6 +133,7 @@ All current inputs are declared in [variables.tf](./standalone/variables.tf).
 | `region` | Short region label used in resource names. | `"swc"` |
 | `tags` | Custom resource tags, merged with the built-in tags in `locals.tf`. | `{}` |
 | `resource_group_name` | Existing resource group name; empty creates a new group. | `""` |
+| `foundry_disable_local_auth` | Optional; `true` turns off key-based sign-in on the Foundry account; see [Optional network and access settings](#optional-network-and-access-settings). | `false` |
 
 Resource names combine the environment, region label, domain, workload, and a random suffix. Built-in tag values take precedence over matching custom tag keys.
 
@@ -161,7 +164,7 @@ This puts both backends at priority `0` with an 80:20 preference. Actual distrib
 
 The gateway's system-assigned identity receives **Azure AI User** on the Foundry account. The shared Foundry account/project user-assigned identity receives **Foundry User** on the project, **AI Gateway User** on the gateway, and **Monitoring Metrics Publisher** on Application Insights. The deployment principal receives **Foundry User** and **Foundry Project Manager** on the account and project.
 
-**Security defaults:** Managed identity is used for gateway-to-Foundry calls, but Foundry local key authentication remains enabled (`disableLocalAuth = false`). The Foundry account also enables public network access with a default network action of `Allow`. Review these settings before production use; this is not a private-network deployment.
+**Security defaults:** Managed identity is used for gateway-to-Foundry calls, but Foundry local key authentication remains enabled by default (`disableLocalAuth = false`); to turn it off, see [Require Microsoft Entra ID sign-in on the Foundry account](#require-microsoft-entra-id-sign-in-on-the-foundry-account). The Foundry account also enables public network access with a default network action of `Allow`. Review these settings before production use; this is not a private-network deployment.
 
 Application Insights enables Azure Monitor workspace ingestion. Terraform reads its managed DCR and OTLP metrics, logs, and traces endpoints, grants the gateway **Monitoring Metrics Publisher** on that DCR, and configures the telemetry exporter. Request and response payload capture is disabled.
 
@@ -171,6 +174,36 @@ Operational considerations:
 - **Monitoring readiness:** If Application Insights has not populated its ingestion endpoints or managed DCR, the configuration fails with an explicit postcondition message. Wait for Azure provisioning to complete, then run `terraform plan` and `terraform apply` again.
 - **Monitoring permissions:** A DCR role-assignment authorization failure requires suitable permissions at that scope. Do not assume resource-group permissions cover a DCR in an Azure-managed resource group.
 - **Model deployment failures:** Verify region availability, model access, and quota for the configured versions and capacities.
+
+## Optional network and access settings
+
+The settings in this section are off by default; when they are unset, the deployment is unchanged. They never create a virtual network, subnet, or DNS zone; settings that need one take the ID of an existing resource.
+
+Set them in `standalone/terraform.tfvars`. Terraform loads that file automatically, also when azd runs Terraform in `standalone/`, and `.gitignore` keeps `*.tfvars` files out of version control.
+
+Offline tests for these settings are in `standalone/tests/`. They mock all providers, so they never call Azure. Run `terraform init` and then `terraform test` from `standalone/`.
+
+### Require Microsoft Entra ID sign-in on the Foundry account
+
+`foundry_disable_local_auth` turns off key-based sign-in on the Foundry account, so callers must sign in with Microsoft Entra ID. The gateway is not affected, because it always calls Foundry with its managed identity.
+
+| Value | Effect |
+| --- | --- |
+| `false` (default) | The account accepts Microsoft Entra ID tokens and account keys. |
+| `true` | The account accepts Microsoft Entra ID tokens only (`disableLocalAuth = true`). |
+
+Before enabling it, consider:
+
+- **Key-based callers:** Apps, scripts, and tools that call the Foundry account with an account key stop working. Move them to Microsoft Entra ID first, and give them a suitable role on the account, such as **Foundry User** (previously named Azure AI User).
+- **Azure Policy:** If your organization denies key-based sign-in with Azure Policy, the default deployment can be blocked. Setting this value to `true` lets the deployment comply.
+- **Removal:** Set the value back to `false`, or remove the line, and apply again to turn key-based sign-in back on. As with turning it off, the change can take a while to reach the service.
+- **Check after enabling:** Run the following command. It prints `true` when key-based sign-in is off.
+
+  ```bash
+  az cognitiveservices account show --name <foundry-account> --resource-group <resource-group> --query properties.disableLocalAuth
+  ```
+
+  The setting itself changes right away, but the service can keep accepting existing keys until its cached settings refresh. Microsoft's guidance says this usually takes a few minutes but can take up to several hours. To confirm that keys no longer work, send one request with an old key directly to the Foundry account, from a network that can reach it, and check that it is rejected with the error code `AuthenticationTypeDisabled`. For details, see *Disable local authentication in Foundry Tools* on Microsoft Learn.
 
 ## Clean up
 

@@ -43,3 +43,10 @@ variable "resource_group_name" {
   description = "The name of the resource group"
   default     = ""
 }
+
+variable "foundry_disable_local_auth" {
+  type        = bool
+  description = "Set to true to turn off key-based sign-in on the Foundry account so that all callers must use Microsoft Entra ID"
+  default     = false
+  nullable    = false
+}
