@@ -19,8 +19,9 @@ resource "azapi_resource" "ms_foundry" {
     }
 
     properties = {
-      # Support both Entra ID and API Key authentication for underlining Cognitive Services account
-      disableLocalAuth = false
+      # Entra ID authentication is always available. Key-based (local) authentication
+      # stays on unless var.foundry_disable_local_auth is true.
+      disableLocalAuth = var.foundry_disable_local_auth
 
       # Specifies that this is an AI Foundry resource
       allowProjectManagement = true
