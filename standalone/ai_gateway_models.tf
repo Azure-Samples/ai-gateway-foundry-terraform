@@ -29,14 +29,15 @@ resource "azapi_resource" "ai_gateway_foundry_model" {
           period     = "month"
           amount     = 10
           counterKey = ["identity"]
-        },
-        {
-          type             = "contentSafety"
-          hateSeverity     = "Medium"
-          selfHarmSeverity = "Medium"
-          sexualSeverity   = "Medium"
-          violenceSeverity = "Medium"
         }
+        # Temporarily disabled pending 2026-11-01 Content Safety API alignment
+        # {
+        #   type             = "contentSafety"
+        #   hateSeverity     = "Medium"
+        #   selfHarmSeverity = "Medium"
+        #   sexualSeverity   = "Medium"
+        #   violenceSeverity = "Medium"
+        # }
       ]
     }
   }
