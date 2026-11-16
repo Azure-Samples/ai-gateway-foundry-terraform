@@ -2,7 +2,7 @@
 
 Deploy a standalone Azure AI Gateway service connected with Microsoft Foundry using Terraform. Applications can use a common gateway for model routing, per-caller usage policies, Microsoft Learn MCP tools, and OpenTelemetry monitoring. The gateway authenticates to Foundry with a managed identity instead of backend API keys.
 
-> The gateway uses `Microsoft.ApiManagement/aigateways@2025-09-01-preview`. Access, supported regions, model availability, and quota depend on your Azure subscription.
+> The gateway uses `Microsoft.ApiManagement/aigateways@2026-11-01`. Access, supported regions, model availability, and quota depend on your Azure subscription.
 
 ## What is deployed
 
@@ -14,7 +14,7 @@ Deploy a standalone Azure AI Gateway service connected with Microsoft Foundry us
 | Foundry project | A project in the new account, using the same user-assigned identity. |
 | Model deployments | Two `GlobalStandard` OpenAI deployments, each with capacity `100`. |
 | Gateway model catalog and aliases | Registers both deployments and creates the three aliases described below. |
-| Microsoft Learn MCP | Registers `https://learn.microsoft.com/api/mcp` with `streamableHttp` transport and a per-identity limit of 20 requests per 60 seconds. |
+| Microsoft Learn MCP | Registers `https://learn.microsoft.com/api/mcp` with `streamableHttp` transport and a per-identity limit of 20 requests per minute. |
 | Monitoring | Log Analytics with 30-day retention, workspace-based Application Insights, and a managed-identity OpenTelemetry exporter. |
 | Role assignments | Grants gateway-to-Foundry access, Foundry identity access to the gateway, and monitoring permissions. |
 

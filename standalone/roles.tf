@@ -54,9 +54,9 @@ resource "azurerm_role_assignment" "ai_gateway_monitoring_publisher" {
 }
 
 resource "azurerm_role_assignment" "ai_gateway_user_to_foundry_identity" {
-  scope                            = azapi_resource.ai_gateway.id
-  role_definition_name             = "AI Gateway User"
-  principal_id                     = azurerm_user_assigned_identity.this.principal_id
+  scope                = azapi_resource.ai_gateway.id
+  role_definition_name = "AI Gateway User"
+  principal_id         = azurerm_user_assigned_identity.this.principal_id
 }
 
 # resource "azurerm_role_assignment" "ai_gateway_user_to_foundry_identity" {
