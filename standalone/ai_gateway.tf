@@ -1,5 +1,5 @@
 resource "azapi_resource" "ai_gateway" {
-  type      = "Microsoft.ApiManagement/aigateways@2025-09-01-preview"
+  type      = "Microsoft.ApiManagement/aigateways@2026-11-01"
   name      = format("ai-gw-%s", local.resource_suffix_kebabcase)
   parent_id = local.resource_group_id
   identity {
@@ -28,23 +28,24 @@ resource "azapi_resource" "ai_gateway_foundry_user" {
 }
 
 resource "azapi_resource" "ai_gateway_foundry_provider" {
-  type                      = "Microsoft.ApiManagement/aigateways/workspaces/modelProviders@2025-09-01-preview"
+  type                      = "Microsoft.ApiManagement/aigateways/workspaces/modelProviders@2026-11-01"
   name                      = azapi_resource.ms_foundry.name
   parent_id                 = "${azapi_resource.ai_gateway.id}/workspaces/default"
   schema_validation_enabled = false
 
   body = {
     properties = {
-      kind        = "Foundry"
-      displayName = azapi_resource.ms_foundry.name
+      modelProviderType = "Foundry"
+      displayName       = azapi_resource.ms_foundry.name
       foundry = {
-        endpoint    = "${trimsuffix(azapi_resource.ms_foundry.output.properties.endpoint, "/")}/"
+        endpoint = {
+          url = "${trimsuffix(azapi_resource.ms_foundry.output.properties.endpoint, "/")}/"
+        }
         resourceIds = [azapi_resource.ms_foundry.id]
-        authentication = {
-          kind = "ManagedIdentity"
-          managedIdentity = {
-            resource = "https://cognitiveservices.azure.com/"
-          }
+      }
+      authentication = {
+        managedIdentity = {
+          resource = "https://cognitiveservices.azure.com/"
         }
       }
     }
@@ -56,29 +57,32 @@ resource "azapi_resource" "ai_gateway_foundry_provider" {
 }
 
 resource "azapi_resource" "ai_gateway_telemetry_exporter" {
-  type                      = "Microsoft.ApiManagement/aigateways/workspaces/telemetryExporters@2025-09-01-preview"
+  type                      = "Microsoft.ApiManagement/aigateways/workspaces/telemetryExporters@2026-11-01"
   name                      = "applicationInsights"
   parent_id                 = "${azapi_resource.ai_gateway.id}/workspaces/default"
   schema_validation_enabled = false
 
-  # The preview API may omit tracesEndpoint and credentials from GET responses.
+  # Defensive guard in case optional exporter fields are omitted from GET responses.
   ignore_missing_property = true
 
   body = {
     properties = {
-      kind           = "OpenTelemetry"
-      payloadCapture = false
-      applicationInsights = {
-        resourceId = azapi_resource.application_insights.id
-      }
+      telemetryExporterType = "OpenTelemetry"
+      payloadCapture        = false
       openTelemetry = {
-        metricsEndpoint = data.azapi_resource.monitoring_ingestion.output.metrics_endpoint
-        logsEndpoint    = data.azapi_resource.monitoring_ingestion.output.logs_endpoint
-        tracesEndpoint  = data.azapi_resource.monitoring_ingestion.output.traces_endpoint
-        credentials = {
-          managedIdentity = {
-            resource = "https://monitor.azure.com"
-          }
+        metricsEndpoint = {
+          url = data.azapi_resource.monitoring_ingestion.output.metrics_endpoint
+        }
+        logsEndpoint = {
+          url = data.azapi_resource.monitoring_ingestion.output.logs_endpoint
+        }
+        tracesEndpoint = {
+          url = data.azapi_resource.monitoring_ingestion.output.traces_endpoint
+        }
+      }
+      authentication = {
+        managedIdentity = {
+          resource = "https://monitor.azure.com"
         }
       }
     }

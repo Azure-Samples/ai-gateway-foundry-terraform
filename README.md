@@ -2,7 +2,7 @@
 
 Deploy a standalone Azure AI Gateway service connected with Microsoft Foundry using Terraform. Applications can use a common gateway for model routing, per-caller usage policies, Microsoft Learn MCP tools, and OpenTelemetry monitoring. The gateway authenticates to Foundry with a managed identity instead of backend API keys.
 
-> The gateway uses `Microsoft.ApiManagement/aigateways@2025-09-01-preview`. Access, supported regions, model availability, and quota depend on your Azure subscription.
+> The gateway uses `Microsoft.ApiManagement/aigateways@2026-11-01`. Access, supported regions, model availability, and quota depend on your Azure subscription.
 
 ## What is deployed
 
@@ -14,7 +14,7 @@ Deploy a standalone Azure AI Gateway service connected with Microsoft Foundry us
 | Foundry project | A project in the new account, using the same user-assigned identity. |
 | Model deployments | Two `GlobalStandard` OpenAI deployments, each with capacity `100`. |
 | Gateway model catalog and aliases | Registers both deployments and creates the three aliases described below. |
-| Microsoft Learn MCP | Registers `https://learn.microsoft.com/api/mcp` with `streamableHttp` transport and a per-identity limit of 20 requests per 60 seconds. |
+| Microsoft Learn MCP | Registers `https://learn.microsoft.com/api/mcp` with `streamableHttp` transport and a per-identity limit of 20 requests per minute. |
 | Monitoring | Log Analytics with 30-day retention, workspace-based Application Insights, and a managed-identity OpenTelemetry exporter. |
 | Role assignments | Grants gateway-to-Foundry access, Foundry identity access to the gateway, and monitoring permissions. |
 
@@ -23,12 +23,12 @@ Deploy a standalone Azure AI Gateway service connected with Microsoft Foundry us
 
 The policies are defined in [ai_gateway_models.tf](./standalone/ai_gateway_models.tf); the underlying deployments are defined in [ms_foundry_models.tf](./standalone/ms_foundry_models.tf).
 
-| Model and deployment name | Initial version | Capacity | Tokens per identity per minute | Monthly cost limit per identity | Content safety |
-| --- | --- | --- | --- | --- | --- |
-| `gpt-6.1-sol` | `2026-09-29` | `100` | `10000` | USD `10` | `Medium` for hate, self-harm, sexual, and violence content. |
-| `gpt-5-mini` | `2025-08-07` | `100` | No token-limit policy configured. | USD `100` | No gateway content-safety policy configured. |
+| Model and deployment name | Initial version | Capacity | Tokens per identity per minute | Monthly cost limit per identity |
+| --- | --- | --- | --- | --- |
+| `gpt-6.1-sol` | `2026-09-29` | `100` | `10000` | USD `10` |
+| `gpt-5-mini` | `2025-08-07` | `100` | No token-limit policy configured. | USD `100` |
 
-Both deployments use the `Microsoft.DefaultV2` responsible AI policy and `OnceNewDefaultVersionAvailable` version upgrades. Gateway policy differences do not remove the underlying model's safety controls.
+Both deployments use the `Microsoft.DefaultV2` responsible AI policy and `OnceNewDefaultVersionAvailable` version upgrades. Gateway `contentSafety` policy wiring is temporarily disabled pending `2026-11-01` Content Safety API alignment.
 
 The model registrations declare `/openai/v1/chat/completions` and `/openai/v1/responses` as supported endpoints. The operation must also be supported by the selected backend model.
 
@@ -136,7 +136,7 @@ Resource names combine the environment, region label, domain, workload, and a ra
 
 ## Customize routing and governance
 
-Model capacity and versions are currently configured directly in [ms_foundry_models.tf](./standalone/ms_foundry_models.tf). Change gateway token limits, caller budgets, content-safety thresholds, and aliases in [ai_gateway_models.tf](./standalone/ai_gateway_models.tf). MCP throttling is configured in [ai_gateway_mcp.tf](./standalone/ai_gateway_mcp.tf).
+Model capacity and versions are currently configured directly in [ms_foundry_models.tf](./standalone/ms_foundry_models.tf). Change gateway token limits, caller budgets, and aliases in [ai_gateway_models.tf](./standalone/ai_gateway_models.tf). MCP throttling is configured in [ai_gateway_mcp.tf](./standalone/ai_gateway_mcp.tf).
 
 For weighted load balancing instead of failover, replace the `backendModels` list of `ai_gateway_model_alias_gpt_latest` with:
 

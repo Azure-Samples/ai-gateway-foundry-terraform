@@ -1,5 +1,5 @@
 resource "azapi_resource" "ai_gateway_foundry_model" {
-  type                      = "Microsoft.ApiManagement/aigateways/workspaces/modelProviders/models@2025-09-01-preview"
+  type                      = "Microsoft.ApiManagement/aigateways/workspaces/modelProviders/models@2026-11-01"
   name                      = azurerm_cognitive_deployment.chat_completion_model.name
   parent_id                 = azapi_resource.ai_gateway_foundry_provider.id
   schema_validation_enabled = false
@@ -7,7 +7,6 @@ resource "azapi_resource" "ai_gateway_foundry_model" {
   body = {
     properties = {
       displayName = azurerm_cognitive_deployment.chat_completion_model.model[0].name
-      apiFormat   = "OpenAIChatCompletions"
       supportedEndpoints = [
         "/openai/v1/chat/completions",
         "/openai/v1/responses"
@@ -30,21 +29,22 @@ resource "azapi_resource" "ai_gateway_foundry_model" {
           period     = "month"
           amount     = 10
           counterKey = ["identity"]
-        },
-        {
-          type             = "contentSafety"
-          hateSeverity     = "Medium"
-          selfHarmSeverity = "Medium"
-          sexualSeverity   = "Medium"
-          violenceSeverity = "Medium"
         }
+        # Temporarily disabled pending 2026-11-01 Content Safety API alignment
+        # {
+        #   type             = "contentSafety"
+        #   hateSeverity     = "Medium"
+        #   selfHarmSeverity = "Medium"
+        #   sexualSeverity   = "Medium"
+        #   violenceSeverity = "Medium"
+        # }
       ]
     }
   }
 }
 
 resource "azapi_resource" "ai_gateway_model_alias" {
-  type                      = "Microsoft.ApiManagement/aigateways/workspaces/aliases@2025-09-01-preview"
+  type                      = "Microsoft.ApiManagement/aigateways/workspaces/aliases@2026-11-01"
   name                      = azapi_resource.ai_gateway_foundry_model.name
   parent_id                 = "${azapi_resource.ai_gateway.id}/workspaces/default"
   schema_validation_enabled = false
@@ -64,7 +64,7 @@ resource "azapi_resource" "ai_gateway_model_alias" {
 }
 
 resource "azapi_resource" "ai_gateway_foundry_model_mini" {
-  type                      = "Microsoft.ApiManagement/aigateways/workspaces/modelProviders/models@2025-09-01-preview"
+  type                      = "Microsoft.ApiManagement/aigateways/workspaces/modelProviders/models@2026-11-01"
   name                      = azurerm_cognitive_deployment.chat_completion_model_mini.name
   parent_id                 = azapi_resource.ai_gateway_foundry_provider.id
   schema_validation_enabled = false
@@ -72,7 +72,6 @@ resource "azapi_resource" "ai_gateway_foundry_model_mini" {
   body = {
     properties = {
       displayName = azurerm_cognitive_deployment.chat_completion_model_mini.model[0].name
-      apiFormat   = "OpenAIChatCompletions"
       supportedEndpoints = [
         "/openai/v1/chat/completions",
         "/openai/v1/responses"
@@ -96,7 +95,7 @@ resource "azapi_resource" "ai_gateway_foundry_model_mini" {
 }
 
 resource "azapi_resource" "ai_gateway_model_alias_mini" {
-  type                      = "Microsoft.ApiManagement/aigateways/workspaces/aliases@2025-09-01-preview"
+  type                      = "Microsoft.ApiManagement/aigateways/workspaces/aliases@2026-11-01"
   name                      = azapi_resource.ai_gateway_foundry_model_mini.name
   parent_id                 = "${azapi_resource.ai_gateway.id}/workspaces/default"
   schema_validation_enabled = false
@@ -117,7 +116,7 @@ resource "azapi_resource" "ai_gateway_model_alias_mini" {
 
 
 resource "azapi_resource" "ai_gateway_model_alias_gpt_latest" {
-  type                      = "Microsoft.ApiManagement/aigateways/workspaces/aliases@2025-09-01-preview"
+  type                      = "Microsoft.ApiManagement/aigateways/workspaces/aliases@2026-11-01"
   name                      = "gpt-latest"
   parent_id                 = "${azapi_resource.ai_gateway.id}/workspaces/default"
   schema_validation_enabled = false
